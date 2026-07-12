@@ -1,0 +1,36 @@
+name: Check CTC Trips
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # runs at the top of every hour
+  workflow_dispatch:        # lets you trigger it manually to test
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run checker
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python check_trips.py
+
+      - name: Save snapshot back to the repo
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update trips snapshot"
+          file_pattern: trips_seen.json
